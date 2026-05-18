@@ -33,7 +33,20 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Conectando Vercel ao GitHub..."
 npx vercel git connect "https://github.com/$repo.git" --yes
+if ($LASTEXITCODE -ne 0) {
+  Write-Host ""
+  Write-Host "Git nativo na Vercel falhou (instale o app em https://github.com/apps/vercel na conta $login)." -ForegroundColor Yellow
+  Write-Host "Configurando deploy automatico via GitHub Actions..." -ForegroundColor Yellow
+  $vercelAuth = "$env:APPDATA\xdg.data\com.vercel.cli\auth.json"
+  if (Test-Path $vercelAuth) {
+    $vt = (Get-Content $vercelAuth | ConvertFrom-Json).token
+    $vt | & $gh secret set VERCEL_TOKEN 2>$null
+    Write-Host "Secret VERCEL_TOKEN configurado no GitHub." -ForegroundColor Green
+  }
+  Write-Host "Push em main dispara: .github/workflows/vercel-production.yml" -ForegroundColor Cyan
+}
 
 Write-Host ""
 Write-Host "Pronto! Repo: https://github.com/$repo" -ForegroundColor Green
 Write-Host "App:   https://investia-nu.vercel.app" -ForegroundColor Green
+Write-Host "CI:    https://github.com/$repo/actions" -ForegroundColor Green
