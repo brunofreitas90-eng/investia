@@ -66,6 +66,23 @@ npx supabase db push
 npx vercel deploy --prod --yes
 ```
 
+## GitHub + deploy automático
+
+1. **Conectar GitHub na Vercel** (obrigatório, uma vez):  
+   https://vercel.com/account/authentication → adicione **GitHub**
+
+2. **Login no GitHub CLI** (use o wrapper se `gh` não for reconhecido) e rode o script:
+   ```powershell
+   cd C:\Users\User\investia
+   .\scripts\gh.cmd auth login -h github.com -p https -w
+   .\scripts\setup-github-vercel.ps1
+   ```
+
+   Ou manualmente no painel:  
+   https://vercel.com/brunofreitas90-8625s-projects/investia/settings/git → **Connect Git Repository**
+
+Repositório esperado: `https://github.com/brunofreitas90/investia`
+
 Variáveis obrigatórias na Vercel (Production):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `NEXT_PUBLIC_APP_URL` = `https://investia-nu.vercel.app`
