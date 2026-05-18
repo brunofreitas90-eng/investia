@@ -1,8 +1,8 @@
-name: Deploy Production
+# Deploy em push agora e feito pela integracao Git da Vercel.
+# Use workflow_dispatch apenas para redeploy manual de emergencia.
+name: Deploy Production (manual)
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 env:
