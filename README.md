@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# InvestIA
 
-## Getting Started
+SaaS moderno de análise inteligente de investimentos em ações brasileiras e americanas.
 
-First, run the development server:
+## Stack
+
+- **Frontend:** Next.js 15+, TypeScript, TailwindCSS, Shadcn/UI, Framer Motion, Recharts
+- **Backend:** Supabase (auth + database)
+- **IA:** OpenAI API
+- **Deploy:** Vercel
+
+## Funcionalidades
+
+- Dashboard com patrimônio, lucro/prejuízo e evolução
+- Carteira (ações BR/US, FIIs, ETFs)
+- Controle de dividendos e calendário
+- Imposto de renda (DARF, isenção 20k)
+- IA analista de empresas
+- Radar de oportunidades
+- Alertas, watchlist, chat IA
+- Simuladores, metas e ranking
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env.local
+# Configure Supabase e OpenAI em .env.local
+```
+
+### Supabase
+
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. Execute `supabase/schema.sql` no SQL Editor
+3. Ative Google OAuth em Authentication > Providers
+4. Copie URL e anon key para `.env.local`
+
+### Variáveis
+
+| Variável | Descrição |
+|----------|-----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon |
+| `OPENAI_API_KEY` | Chave OpenAI para IA |
+| `BRAPI_TOKEN` | Opcional — mais requests na Brapi |
+
+## Desenvolvimento
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000). Sem Supabase configurado, o app funciona em **modo demo**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Produção:** https://investia-nu.vercel.app
 
-## Learn More
+```powershell
+# Setup completo (build + Supabase + Vercel)
+.\scripts\deploy-production.ps1
 
-To learn more about Next.js, take a look at the following resources:
+# Ou manualmente:
+npm run build
+npx supabase db push
+npx vercel deploy --prod --yes
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Variáveis obrigatórias na Vercel (Production):
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_APP_URL` = `https://investia-nu.vercel.app`
+- `OPENAI_API_KEY` (para Chat IA e Análise — adicione no painel Vercel se vazio no `.env.local`)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## APIs de mercado (gratuitas)
 
-## Deploy on Vercel
+- Brapi (ações BR)
+- Yahoo Finance (BR + US)
+- Fallback automático entre fontes
+- Cache em memória anti-rate-limit
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estrutura
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/           # Rotas e páginas
+├── components/    # UI e layout
+├── services/      # Market data e IA
+├── lib/           # Utils, Supabase, portfolio
+├── types/         # TypeScript
+└── store/         # Zustand
+```

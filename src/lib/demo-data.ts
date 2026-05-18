@@ -1,0 +1,258 @@
+import type {
+  PortfolioItem,
+  DashboardStats,
+  Dividend,
+  FinancialEvent,
+  WatchlistItem,
+  Alert,
+  Operation,
+  FinancialGoal,
+} from '@/types';
+
+export const demoFinancialGoal: FinancialGoal = {
+  targetAmount: 100000,
+  targetDate: '2028-12-31',
+  monthlyContribution: 1500,
+  riskProfile: 'moderate',
+};
+
+export const demoPortfolio: PortfolioItem[] = [
+  {
+    id: '1',
+    user_id: 'demo',
+    ticker: 'PETR4',
+    asset_type: 'stock_br',
+    quantity: 100,
+    average_price: 32.5,
+    purchase_date: '2024-03-15',
+    current_price: 38.2,
+    current_value: 3820,
+    profit_loss: 570,
+    profit_loss_percent: 17.54,
+    dividend_yield: 12.5,
+  },
+  {
+    id: '2',
+    user_id: 'demo',
+    ticker: 'VALE3',
+    asset_type: 'stock_br',
+    quantity: 50,
+    average_price: 62.0,
+    purchase_date: '2024-06-20',
+    current_price: 58.4,
+    current_value: 2920,
+    profit_loss: -180,
+    profit_loss_percent: -5.81,
+    dividend_yield: 8.2,
+  },
+  {
+    id: '3',
+    user_id: 'demo',
+    ticker: 'ITUB4',
+    asset_type: 'stock_br',
+    quantity: 80,
+    average_price: 28.0,
+    purchase_date: '2024-01-10',
+    current_price: 34.5,
+    current_value: 2760,
+    profit_loss: 520,
+    profit_loss_percent: 23.21,
+    dividend_yield: 5.1,
+  },
+  {
+    id: '4',
+    user_id: 'demo',
+    ticker: 'AAPL',
+    asset_type: 'stock_us',
+    quantity: 10,
+    average_price: 175.0,
+    purchase_date: '2024-08-01',
+    current_price: 198.5,
+    current_value: 1985,
+    profit_loss: 235,
+    profit_loss_percent: 13.43,
+    dividend_yield: 0.5,
+  },
+  {
+    id: '5',
+    user_id: 'demo',
+    ticker: 'MXRF11',
+    asset_type: 'fii',
+    quantity: 200,
+    average_price: 9.8,
+    purchase_date: '2024-05-01',
+    current_price: 10.2,
+    current_value: 2040,
+    profit_loss: 80,
+    profit_loss_percent: 4.08,
+    dividend_yield: 11.8,
+  },
+];
+
+export const demoStats: DashboardStats = {
+  totalInvested: 13170,
+  currentPatrimony: 13525,
+  profitLoss: 1225,
+  profitLossPercent: 9.3,
+  dividendsReceived: 1840,
+  monthlyReturn: 0.78,
+  annualReturn: 9.3,
+  bestAssets: [
+    { ticker: 'ITUB4', return: 23.21 },
+    { ticker: 'PETR4', return: 17.54 },
+    { ticker: 'AAPL', return: 13.43 },
+  ],
+  worstAssets: [
+    { ticker: 'VALE3', return: -5.81 },
+    { ticker: 'MXRF11', return: 4.08 },
+  ],
+};
+
+export const demoChartData = [
+  { date: '2024-01', value: 10000 },
+  { date: '2024-02', value: 10200 },
+  { date: '2024-03', value: 10800 },
+  { date: '2024-04', value: 10600 },
+  { date: '2024-05', value: 11200 },
+  { date: '2024-06', value: 11500 },
+  { date: '2024-07', value: 11800 },
+  { date: '2024-08', value: 12100 },
+  { date: '2024-09', value: 12400 },
+  { date: '2024-10', value: 12800 },
+  { date: '2024-11', value: 13100 },
+  { date: '2024-12', value: 13525 },
+];
+
+export const demoDividends: Dividend[] = [
+  {
+    id: '1',
+    user_id: 'demo',
+    ticker: 'PETR4',
+    amount: 450,
+    com_date: '2025-05-20',
+    ex_date: '2025-05-21',
+    payment_date: '2025-06-15',
+    status: 'expected',
+  },
+  {
+    id: '2',
+    user_id: 'demo',
+    ticker: 'MXRF11',
+    amount: 220,
+    com_date: '2025-05-10',
+    ex_date: '2025-05-11',
+    payment_date: '2025-05-25',
+    status: 'confirmed',
+  },
+];
+
+export const demoEvents: FinancialEvent[] = [
+  {
+    id: '1',
+    ticker: 'PETR4',
+    event_type: 'dividend_com',
+    title: 'Data COM - PETR4',
+    event_date: '2025-05-20',
+    description: 'Último dia para comprar com direito a dividendos',
+  },
+  {
+    id: '2',
+    ticker: 'VALE3',
+    event_type: 'earnings',
+    title: 'Resultado Trimestral Q1',
+    event_date: '2025-05-25',
+  },
+  {
+    id: '3',
+    ticker: 'ITUB4',
+    event_type: 'payment',
+    title: 'Pagamento Dividendos',
+    event_date: '2025-05-28',
+  },
+];
+
+export const popularTickers = [
+  'PETR4', 'VALE3', 'ITUB4', 'BBDC4', 'WEGE3', 'ABEV3',
+  'MXRF11', 'HGLG11', 'BOVA11', 'AAPL', 'NVDA', 'MSFT',
+];
+
+export const demoWatchlist: WatchlistItem[] = [
+  { id: 'w1', user_id: 'demo', ticker: 'PETR4', asset_type: 'stock_br' },
+  { id: 'w2', user_id: 'demo', ticker: 'VALE3', asset_type: 'stock_br' },
+  { id: 'w3', user_id: 'demo', ticker: 'WEGE3', asset_type: 'stock_br' },
+  { id: 'w4', user_id: 'demo', ticker: 'MXRF11', asset_type: 'fii' },
+  { id: 'w5', user_id: 'demo', ticker: 'AAPL', asset_type: 'stock_us' },
+  { id: 'w6', user_id: 'demo', ticker: 'NVDA', asset_type: 'stock_us' },
+];
+
+export const demoAlerts: Alert[] = [
+  {
+    id: 'al1',
+    user_id: 'demo',
+    ticker: 'PETR4',
+    alert_type: 'price_target',
+    condition: { targetPrice: 38, direction: 'above' },
+    is_active: true,
+    notify_email: true,
+    notify_app: true,
+  },
+  {
+    id: 'al2',
+    user_id: 'demo',
+    ticker: 'VALE3',
+    alert_type: 'loss',
+    condition: { percent: 8 },
+    is_active: true,
+    notify_email: false,
+    notify_app: true,
+  },
+  {
+    id: 'al3',
+    user_id: 'demo',
+    ticker: 'MXRF11',
+    alert_type: 'com_date',
+    condition: { daysBefore: 5 },
+    is_active: true,
+    notify_email: true,
+    notify_app: true,
+  },
+];
+
+export const demoOperations: Operation[] = [
+  {
+    id: 'op1',
+    user_id: 'demo',
+    ticker: 'PETR4',
+    operation_type: 'sell',
+    quantity: 50,
+    price: 38.5,
+    total: 1925,
+    fees: 5,
+    operation_date: '2025-04-15',
+    market: 'B3',
+  },
+  {
+    id: 'op2',
+    user_id: 'demo',
+    ticker: 'ITUB4',
+    operation_type: 'sell',
+    quantity: 30,
+    price: 34,
+    total: 1020,
+    fees: 4,
+    operation_date: '2025-05-02',
+    market: 'B3',
+  },
+  {
+    id: 'op3',
+    user_id: 'demo',
+    ticker: 'VALE3',
+    operation_type: 'buy',
+    quantity: 20,
+    price: 58,
+    total: 1160,
+    fees: 4,
+    operation_date: '2025-05-10',
+    market: 'B3',
+  },
+];
