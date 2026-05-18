@@ -6,7 +6,8 @@ $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot\..
 
 $repoName = "investia"
-$githubUser = "brunofreitas90"
+$gh = "C:\Program Files\GitHub CLI\gh.exe"
+$githubUser = if (Test-Path $gh) { & $gh api user -q .login } else { "brunofreitas90-eng" }
 
 Write-Host "=== GitHub + Vercel ===" -ForegroundColor Cyan
 

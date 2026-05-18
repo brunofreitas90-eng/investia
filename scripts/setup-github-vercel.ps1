@@ -16,7 +16,8 @@ if ($LASTEXITCODE -ne 0) {
   & $gh auth login -h github.com -p https -w
 }
 
-$repo = "brunofreitas90/investia"
+$login = & $gh api user -q .login
+$repo = "$login/investia"
 & $gh repo view $repo 2>$null
 if ($LASTEXITCODE -ne 0) {
   Write-Host "Criando repositorio $repo ..."
