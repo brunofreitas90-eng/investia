@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unauthorized } from '@/lib/api-guard';
+import { isDemoRequest } from '@/lib/demo-mode';
 import { createClient } from '@/lib/supabase/server';
-import { demoOperations } from '@/lib/demo-data';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { resolvePortfolioItems } from '@/lib/resolve-portfolio-items';
 import { enrichPortfolio } from '@/lib/portfolio';
 import { getQuotes } from '@/services/market';
@@ -21,14 +23,16 @@ export async function GET(request: NextRequest) {
       10
     );
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(await buildReport(demoOperations, year));
+    if (isDemoRequest(request)) {
+      return unauthorized();
     }
+
+    const user = await getAuthUser();
+    if (!user) {
+      return unauthorized();
+    }
+
+    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from('operations')
@@ -57,14 +61,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getAuthUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return unauthorized();
     }
+
+    const supabase = await createClient();
 
     const {
       ticker,
@@ -113,14 +115,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getAuthUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return unauthorized();
     }
+
+    const supabase = await createClient();
 
     const id = request.nextUrl.searchParams.get('id');
     if (!id) {

@@ -16,8 +16,8 @@ import { PortfolioChart } from '@/components/dashboard/portfolio-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { demoStats } from '@/lib/demo-data';
-import { isDemoModeClient, loadDemoPortfolio } from '@/lib/demo-portfolio-storage';
-import { demoPortfolio } from '@/lib/demo-data';
+import { loadClientPortfolio } from '@/lib/client-local-storage';
+import { isLocalClientMode } from '@/lib/client-data-mode';
 import { buildDashboardStats } from '@/lib/portfolio';
 import { buildPatrimonyChartFromPortfolio } from '@/lib/portfolio-chart-data';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
@@ -27,9 +27,8 @@ import type { DividendsSummary } from '@/services/dividends/portfolio-dividends'
 import type { FinancialEvent } from '@/types';
 
 async function fetchDividendsForDashboard(): Promise<number> {
-  if (isDemoModeClient()) {
-    const stored = loadDemoPortfolio();
-    const items = stored?.length ? stored : demoPortfolio;
+  if (isLocalClientMode()) {
+    const items = loadClientPortfolio();
     const res = await fetch('/api/dividends', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,9 +50,8 @@ async function fetchDividendsForDashboard(): Promise<number> {
 }
 
 async function fetchPortfolioForDashboard(): Promise<PortfolioSummary> {
-  if (isDemoModeClient()) {
-    const stored = loadDemoPortfolio();
-    const items = stored?.length ? stored : demoPortfolio;
+  if (isLocalClientMode()) {
+    const items = loadClientPortfolio();
     const res = await fetch('/api/portfolio', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -75,12 +73,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const calendarPromise = isDemoModeClient()
+    const calendarPromise = isLocalClientMode()
       ? fetch('/api/calendar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            items: loadDemoPortfolio()?.length ? loadDemoPortfolio() : demoPortfolio,
+            items: loadClientPortfolio(),
           }),
         }).then((r) => (r.ok ? r.json() : { events: [] }))
       : fetch('/api/calendar').then((r) => (r.ok ? r.json() : { events: [] }));

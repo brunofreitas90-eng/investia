@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Brain, Shield, TrendingUp, Zap } from 'lucide-react';
+import { AppBrand } from '@/components/app-brand';
 import { Button } from '@/components/ui/button';
 
 const features = [
@@ -32,20 +33,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#050506] grid-bg overflow-hidden">
       <nav className="flex items-center justify-between px-6 lg:px-12 py-6 border-b border-white/[0.06]">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-black" />
-          </div>
-          <span className="text-xl font-bold">
-            Invest<span className="text-emerald-400">IA</span>
-          </span>
-        </Link>
+        <AppBrand href="/" width={140} priority />
         <div className="flex items-center gap-3">
           <Link href="/login">
-            <Button variant="ghost">Entrar</Button>
-          </Link>
-          <Link href="/register">
-            <Button>Começar grátis</Button>
+            <Button>Entrar</Button>
           </Link>
         </div>
       </nav>
@@ -68,14 +59,9 @@ export default function LandingPage() {
             simples sobre ações brasileiras e americanas.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button size="lg" className="gap-2">
-                Acessar Dashboard <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="lg" variant="secondary">
-                Criar conta grátis
+                Entrar <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -101,7 +87,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-white/[0.06] py-8 text-center text-sm text-zinc-500">
-        © 2026 InvestIA. Pronto para deploy na Vercel.
+        © 2026 DelfoInvestIA.
       </footer>
     </div>
   );

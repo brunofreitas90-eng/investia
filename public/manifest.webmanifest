@@ -1,0 +1,32 @@
+{
+  "name": "DelfoInvestIA",
+  "short_name": "DelfoInvestIA",
+  "description": "Orientação financeira inteligente com IA",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#050506",
+  "theme_color": "#0a4d68",
+  "lang": "pt-BR",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "business"],
+  "icons": [
+    {
+      "src": "/icons/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

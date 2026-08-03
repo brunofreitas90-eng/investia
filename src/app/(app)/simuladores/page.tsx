@@ -15,10 +15,17 @@ const tools = [
     featured: true,
   },
   {
-    href: '/dividendos',
-    title: 'Simulador de Dividendos',
-    description: 'Estime sua renda passiva com base nos proventos da carteira.',
+    href: '/renda-mensal',
+    title: 'Renda Mensal',
+    description: 'Simule capital e carteira para atingir sua meta de dividendos por mês.',
     icon: PiggyBank,
+    featured: true,
+  },
+  {
+    href: '/dividendos',
+    title: 'Dividendos',
+    description: 'Histórico completo, gráficos e proventos da carteira.',
+    icon: TrendingUp,
     featured: false,
   },
   {

@@ -3,6 +3,12 @@ import type { CompanyAnalysis, PortfolioItem, Quote } from '@/types';
 import { normalizeBuyScore, scoreToRecommendation } from '@/lib/buy-score';
 import type { ChatContextPayload } from './chat-context';
 import { formatContextForPrompt } from './chat-context';
+import { CHAT_SYSTEM_PERSONA } from '@/lib/investment-strategy';
+import { PLAIN_LANGUAGE_RULES } from '@/lib/plain-language';
+import type { EnhancedChatContext } from './enhanced-chat-context';
+import { answerFromContext, isOpenAIAvailable } from '@/lib/chat-intents';
+
+export { isOpenAIAvailable };
 
 export interface ChatHistoryMessage {
   role: 'user' | 'assistant';
@@ -71,7 +77,7 @@ Responda APENAS JSON válido com:
         {
           role: 'system',
           content:
-            'Você é analista da InvestIA. Dê nota de compra de 0 a 10 sempre. Linguagem simples. Só JSON.',
+            'Você é analista da DelfoInvestIA. Dê nota de compra de 0 a 10 sempre. Linguagem simples. Só JSON.',
         },
         { role: 'user', content: prompt },
       ],
@@ -128,29 +134,46 @@ function mockAnalysis(
   };
 }
 
+export type ChatResponseMode = 'ai' | 'rules';
+
 export async function chatWithAI(
   message: string,
-  context: ChatContextPayload,
-  history: ChatHistoryMessage[] = []
-): Promise<string> {
+  context: ChatContextPayload | EnhancedChatContext,
+  history: ChatHistoryMessage[] = [],
+  formatContext: (ctx: ChatContextPayload | EnhancedChatContext) => string = formatContextForPrompt
+): Promise<{ text: string; mode: ChatResponseMode }> {
   const openai = getOpenAI();
 
   if (!openai) {
-    return mockChatResponse(message, context);
+    return { text: answerFromContext(message, context), mode: 'rules' };
   }
 
-  const systemPrompt = `Você é o assistente InvestIA, especialista em investimentos para brasileiros iniciantes.
-Responda em português do Brasil, de forma clara e objetiva (máximo 3 parágrafos curtos).
-Use APENAS os dados do contexto da carteira abaixo. Se não souber, diga honestamente.
-Não invente tickers ou valores. Valores em R$ com formato brasileiro quando citar números.
-Sugira módulos do app quando útil: IA Analista (/analise), Dividendos, Carteira, Imposto, Radar.
+  const hasMarket = 'mercado' in context && context.mercado != null;
+  const hasResearch =
+    'empresasPesquisadas' in context &&
+    Array.isArray(context.empresasPesquisadas) &&
+    context.empresasPesquisadas.length > 0;
 
-CONTEXTO DA CARTEIRA (dados reais):
-${formatContextForPrompt(context)}`;
+  const systemPrompt = `${CHAT_SYSTEM_PERSONA}
+${PLAIN_LANGUAGE_RULES}
+
+MODO CHAT — responda exatamente o que foi perguntado, com profundidade útil.
+REGRAS DE DADOS:
+- Quando o JSON tiver preços, yields, datas COM ou empresasPesquisadas, use esses números reais e cite-os.
+- Nunca invente uma cotação exata (R$ X,XX) se ela não estiver no contexto.
+- Conceitos, estratégias, setores, histórico de mercado, comparação de empresas e educação financeira: responda com conhecimento geral, mesmo que não estejam no JSON.
+- Nunca diga que só pode falar do que está no app. Você cobre o mercado de ações como um todo.
+- Se a pergunta misturar carteira + mercado geral, use a carteira do JSON e complete com conhecimento de mercado.
+- Para preço teto / rendimento alvo: use precosTeto e proventos12mPorAcao quando existirem.
+${hasMarket ? 'Há dados de mercado no contexto: quedas do dia, yields e pagadores mensais.' : ''}
+${hasResearch ? 'Há empresasPesquisadas com cotações e dividendos REAIS — priorize esses números.' : ''}
+
+CONTEXTO DO USUÁRIO E DADOS AO VIVO (JSON — use quando relevante; não limite o assunto a isto):
+${formatContext(context)}`;
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...history.slice(-8).map((m) => ({
+    ...history.slice(-10).map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
@@ -161,39 +184,15 @@ ${formatContextForPrompt(context)}`;
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages,
-      temperature: 0.6,
-      max_tokens: 900,
+      temperature: 0.45,
+      max_tokens: 2000,
     });
-    return completion.choices[0]?.message?.content || 'Desculpe, não consegui responder.';
+    const text =
+      completion.choices[0]?.message?.content || 'Desculpe, não consegui responder.';
+    return { text, mode: 'ai' };
   } catch {
-    return mockChatResponse(message, context);
+    return { text: answerFromContext(message, context), mode: 'rules' };
   }
-}
-
-function mockChatResponse(
-  message: string,
-  ctx: ChatContextPayload
-): string {
-  const lower = message.toLowerCase();
-  const fmt = (n: number) =>
-    n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  if (ctx.qtdAtivos === 0) {
-    return 'Sua carteira está vazia. Adicione ativos em Carteira.';
-  }
-  const patrimonio = ctx.patrimonio;
-  const dividendos = ctx.dividendosRecebidos12m;
-
-  if (lower.includes('nota') || lower.includes('comprar') || lower.includes('recomend')) {
-    return 'Use o módulo IA Analista: digite o ticker e veja a nota de 0 a 10 com recomendação de compra.';
-  }
-  if (lower.includes('dividendo') || lower.includes('provento')) {
-    return `Proventos 12m: ${fmt(dividendos)}. Previstos: ${fmt(ctx.dividendosPrevistos)}.`;
-  }
-  if (lower.includes('ir') || lower.includes('imposto')) {
-    return 'Para ações: vendas até R$ 20.000/mês são isentas. Use o módulo Imposto de Renda.';
-  }
-  const lista = ctx.ativos.map((a) => a.ticker).join(', ');
-  return `Patrimônio ${fmt(patrimonio)}, ${ctx.qtdAtivos} ativos (${lista}). Lucro ${fmt(ctx.lucro)}. Dividendos: ${fmt(dividendos)}.`;
 }
 
 export async function findOpportunities(

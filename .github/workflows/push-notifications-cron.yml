@@ -1,0 +1,24 @@
+# Notificações push — backup do cron Vercel (a cada 2h em dias úteis UTC)
+name: Push notifications cron
+
+on:
+  schedule:
+    - cron: '0 */2 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger notifications cron
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://investia-nu.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET não configurado — pulando"
+            exit 0
+          fi
+          curl -fsS -X GET \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL}/api/cron/notifications"

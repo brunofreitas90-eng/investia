@@ -1,18 +1,20 @@
+import { hasPrivateAppAccessCookie } from '@/lib/app-access';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { createClient } from '@/lib/supabase/server';
-import { demoPortfolio } from '@/lib/demo-data';
 import type { PortfolioItem } from '@/types';
 
-/** Carrega itens da carteira: usuário logado ou demo padrão */
+/** Carteira do usuário logado. Com senha/demo, retorna vazio (dados vêm do cliente). */
 export async function resolvePortfolioItems(): Promise<PortfolioItem[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return demoPortfolio;
+  if (await hasPrivateAppAccessCookie()) {
+    return [];
   }
 
+  const user = await getAuthUser();
+  if (!user) {
+    return [];
+  }
+
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('portfolio')
     .select('*')

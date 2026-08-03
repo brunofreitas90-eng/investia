@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { demoOperations } from '@/lib/demo-data';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
 import {
-  loadDemoOperations,
-  saveDemoOperations,
-} from '@/lib/demo-operations-storage';
+  clientItemPrefix,
+  clientUserId,
+  loadClientOperations,
+  saveClientOperations,
+} from '@/lib/client-local-storage';
+import { getClientDataMode, isLocalClientMode } from '@/lib/client-data-mode';
 import type { TaxReport } from '@/lib/ir-tax';
 import type { Operation, OperationType } from '@/types';
 import { toast } from 'sonner';
@@ -32,12 +33,10 @@ export function useTax(year?: number) {
   const fetchTax = useCallback(async () => {
     setLoading(true);
     try {
-      const demo = isDemoModeClient();
-      setIsDemo(demo);
+      setIsDemo(getClientDataMode() === 'demo');
 
-      if (demo) {
-        const stored = loadDemoOperations();
-        const ops = stored?.length ? stored : demoOperations;
+      if (isLocalClientMode()) {
+        const ops = loadClientOperations();
         const res = await fetch('/api/tax', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -60,8 +59,8 @@ export function useTax(year?: number) {
     fetchTax();
   }, [fetchTax]);
 
-  const persistDemo = async (ops: Operation[]) => {
-    saveDemoOperations(ops);
+  const persistLocal = async (ops: Operation[]) => {
+    saveClientOperations(ops);
     const res = await fetch('/api/tax', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,11 +72,11 @@ export function useTax(year?: number) {
   const addOperation = async (input: AddOperationInput) => {
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoOperations() ?? demoOperations;
+      if (isLocalClientMode()) {
+        const stored = loadClientOperations();
         const newOp: Operation = {
-          id: `demo-op-${Date.now()}`,
-          user_id: 'demo',
+          id: `${clientItemPrefix()}-op-${Date.now()}`,
+          user_id: clientUserId(),
           ticker: input.ticker.toUpperCase(),
           operation_type: input.operation_type,
           quantity: input.quantity,
@@ -87,7 +86,7 @@ export function useTax(year?: number) {
           operation_date: input.operation_date,
           market: input.market ?? 'B3',
         };
-        await persistDemo([...stored, newOp]);
+        await persistLocal([...stored, newOp]);
         toast.success('Operação registrada');
         return;
       }
@@ -114,9 +113,9 @@ export function useTax(year?: number) {
   const removeOperation = async (id: string) => {
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoOperations() ?? demoOperations;
-        await persistDemo(stored.filter((o) => o.id !== id));
+      if (isLocalClientMode()) {
+        const stored = loadClientOperations();
+        await persistLocal(stored.filter((o) => o.id !== id));
         toast.success('Operação removida');
         return;
       }
@@ -130,7 +129,7 @@ export function useTax(year?: number) {
       setReport(data);
       toast.success('Operação removida');
     } catch {
-      toast.error('Falha ao remover');
+      toast.error('Falha ao remover operação');
     } finally {
       setSaving(false);
     }

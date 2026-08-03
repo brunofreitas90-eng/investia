@@ -1,6 +1,7 @@
 'use client';
 
 import { PageWrapper } from '@/components/layout/page-wrapper';
+import { AiStatusBanner } from '@/components/ai-status-banner';
 import { ChatDashboard } from '@/components/chat/chat-dashboard';
 
 export default function ChatPage() {
@@ -9,7 +10,10 @@ export default function ChatPage() {
       title="Chat IA"
       subtitle="Assistente com dados reais da sua carteira e dividendos"
     >
-      <ChatDashboard />
+      <div className="space-y-4">
+        <AiStatusBanner />
+        <ChatDashboard />
+      </div>
     </PageWrapper>
   );
 }

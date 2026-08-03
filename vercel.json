@@ -1,4 +1,10 @@
 {
   "framework": "nextjs",
-  "regions": ["gru1"]
+  "regions": ["gru1"],
+  "crons": [
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "0 18 * * 1-5"
+    }
+  ]
 }

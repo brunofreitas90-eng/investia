@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuthOrDemo } from '@/lib/api-guard';
 import { getQuote, getFundamentals } from '@/services/market';
 import { buildRIReport } from '@/services/market/ri-report';
 import { analyzeWithRI } from '@/services/ai/analyze-ri';
 
 export async function POST(request: NextRequest) {
+  const access = await requireAuthOrDemo(request);
+  if (!access.ok) return access.response;
+
   try {
     const { ticker } = await request.json();
     if (!ticker) {

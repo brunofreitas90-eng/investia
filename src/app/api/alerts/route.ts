@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unauthorized } from '@/lib/api-guard';
+import { isDemoRequest } from '@/lib/demo-mode';
 import { createClient } from '@/lib/supabase/server';
-import { demoAlerts } from '@/lib/demo-data';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { resolvePortfolioItems } from '@/lib/resolve-portfolio-items';
 import { buildCondition, toSchemaAlertType } from '@/lib/alert-config';
 import { evaluateAlerts } from '@/services/alerts/evaluate';
@@ -12,18 +14,19 @@ async function enrichAlerts(alerts: Alert[], portfolioItems: Awaited<ReturnType<
   return { alerts: evaluated, triggeredCount, total: evaluated.length };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const portfolioItems = await resolvePortfolioItems();
-
-    if (!user) {
-      return NextResponse.json(await enrichAlerts(demoAlerts, portfolioItems));
+    if (isDemoRequest(request)) {
+      return unauthorized();
     }
+
+    const user = await getAuthUser();
+    if (!user) {
+      return unauthorized();
+    }
+
+    const supabase = await createClient();
+    const portfolioItems = await resolvePortfolioItems();
 
     const { data, error } = await supabase
       .from('alerts')
@@ -61,20 +64,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (Array.isArray(body.alerts)) {
-      const portfolioItems = await resolvePortfolioItems();
+      const portfolioItems = Array.isArray(body.portfolioItems)
+        ? body.portfolioItems
+        : await resolvePortfolioItems();
       return NextResponse.json(
         await enrichAlerts(body.alerts as Alert[], portfolioItems)
       );
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getAuthUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return unauthorized();
     }
+
+    const supabase = await createClient();
 
     const alertType = body.alert_type as AlertType;
     const condition = buildCondition(alertType, {
@@ -117,14 +120,12 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getAuthUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return unauthorized();
     }
+
+    const supabase = await createClient();
 
     const { id, is_active } = body;
     if (!id) {
@@ -160,14 +161,12 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getAuthUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return unauthorized();
     }
+
+    const supabase = await createClient();
 
     const id = request.nextUrl.searchParams.get('id');
     if (!id) {

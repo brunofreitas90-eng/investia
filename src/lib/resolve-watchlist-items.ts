@@ -1,17 +1,20 @@
+import { hasPrivateAppAccessCookie } from '@/lib/app-access';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { createClient } from '@/lib/supabase/server';
-import { demoWatchlist } from '@/lib/demo-data';
 import type { WatchlistItem } from '@/types';
 
+/** Watchlist do usuário logado. No modo demo, retorna vazio (dados vêm do cliente). */
 export async function resolveWatchlistItems(): Promise<WatchlistItem[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return demoWatchlist;
+  if (await hasPrivateAppAccessCookie()) {
+    return [];
   }
 
+  const user = await getAuthUser();
+  if (!user) {
+    return [];
+  }
+
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('watchlist')
     .select('*')

@@ -19,11 +19,22 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
-# Link projeto (se ainda nao linkado)
-if (-not (Test-Path "supabase\.temp\project-ref")) {
-  Write-Host "Linkando projeto inbiqonlnwjbcqdtdonk..."
-  npx supabase link --project-ref inbiqonlnwjbcqdtdonk
+# Link projeto (ref em supabase\.temp\project-ref)
+$refFile = "supabase\.temp\project-ref"
+if (-not (Test-Path $refFile)) {
+  Write-Host "Projeto nao linkado. Execute primeiro:" -ForegroundColor Yellow
+  Write-Host "  .\scripts\create-supabase-project.ps1" -ForegroundColor Yellow
+  Write-Host "  ou .\scripts\link-supabase-manual.ps1" -ForegroundColor Yellow
+  exit 1
 }
+$projectRef = (Get-Content $refFile -Raw).Trim()
+$dbPassFile = "supabase\.temp\db-password.txt"
+$linkArgs = @("link", "--project-ref", $projectRef)
+if (Test-Path $dbPassFile) {
+  $linkArgs += @("-p", (Get-Content $dbPassFile -Raw).Trim())
+}
+Write-Host "Linkando projeto $projectRef..."
+npx supabase @linkArgs
 
 # Aplicar migrations
 Write-Host "Aplicando migrations..."
@@ -34,8 +45,8 @@ Write-Host "Atualizando config de auth..."
 echo y | npx supabase config push
 
 Write-Host ""
-Write-Host "Projeto: https://supabase.com/dashboard/project/inbiqonlnwjbcqdtdonk" -ForegroundColor Green
-Write-Host "URL API: https://inbiqonlnwjbcqdtdonk.supabase.co" -ForegroundColor Green
+Write-Host "Projeto: https://supabase.com/dashboard/project/$projectRef" -ForegroundColor Green
+Write-Host "URL API: https://$projectRef.supabase.co" -ForegroundColor Green
 Write-Host ""
 Write-Host "Proximo passo: npm run dev" -ForegroundColor Cyan
 Write-Host "Google OAuth: Dashboard > Authentication > Providers > Google" -ForegroundColor Yellow

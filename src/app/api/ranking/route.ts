@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuthOrDemo } from '@/lib/api-guard';
 import { popularTickers } from '@/lib/demo-data';
 import {
   buildMarketRanking,
@@ -48,6 +49,9 @@ async function buildRanking(
 }
 
 export async function GET(request: NextRequest) {
+  const access = await requireAuthOrDemo(request);
+  if (!access.ok) return access.response;
+
   try {
     const scope = (request.nextUrl.searchParams.get('scope') ||
       'portfolio') as RankingScope;

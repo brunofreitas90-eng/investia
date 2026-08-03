@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { demoPortfolio } from '@/lib/demo-data';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
-import { loadDemoPortfolio } from '@/lib/demo-portfolio-storage';
+import { loadClientPortfolio } from '@/lib/client-local-storage';
+import { isLocalClientMode } from '@/lib/client-data-mode';
 import type { DividendsSummary } from '@/services/dividends/portfolio-dividends';
 import { toast } from 'sonner';
 
@@ -14,9 +13,8 @@ export function useDividends() {
   const fetchDividends = useCallback(async () => {
     setLoading(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoPortfolio();
-        const items = stored?.length ? stored : demoPortfolio;
+      if (isLocalClientMode()) {
+        const items = loadClientPortfolio();
         const res = await fetch('/api/dividends', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDividends } from '@/hooks/use-dividends';
 import { DividendsMonthlyTable } from '@/components/dividendos/dividends-monthly-table';
+import { PortfolioPaymentSchedulesExpanded } from '@/components/dividendos/portfolio-payment-schedules';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -89,8 +90,15 @@ export function DividendsDashboard() {
         </Card>
       )}
 
-      {!loading && (summary?.monthlyBreakdown?.length ?? 0) > 0 && (
-        <DividendsMonthlyTable rows={summary!.monthlyBreakdown} loading={loading} />
+      {!loading && (
+        <DividendsMonthlyTable
+          rows={summary?.monthlyBreakdown ?? []}
+          loading={loading}
+        />
+      )}
+
+      {!loading && (summary?.paymentSchedules?.length ?? 0) > 0 && (
+        <PortfolioPaymentSchedulesExpanded schedules={summary!.paymentSchedules} />
       )}
 
       {!loading && upcoming.length > 0 && (

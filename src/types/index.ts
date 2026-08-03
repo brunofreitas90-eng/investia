@@ -91,6 +91,10 @@ export interface Dividend {
   ex_date?: string;
   payment_date?: string;
   status: 'expected' | 'confirmed' | 'paid';
+  /** Tipo do provento (dividendo, JCP/JSCP, rendimento FII, etc.) */
+  kind?: DividendPaymentKind;
+  /** true quando a data/valor foram estimados pelo histórico (ainda não anunciados) */
+  projected?: boolean;
 }
 
 export interface WatchlistItem {
@@ -101,6 +105,8 @@ export interface WatchlistItem {
   notes?: string;
   current_price?: number;
   change_percent?: number;
+  /** DY: proventos pagos nos últimos 12 meses ÷ preço atual */
+  dividend_yield_12m?: number;
 }
 
 export interface Alert {
@@ -282,11 +288,144 @@ export interface Opportunity {
   metrics: Record<string, number | string>;
 }
 
+import type { AggregatedPosition } from '@/lib/portfolio-aggregate';
+
 export interface PortfolioSummary {
   items: PortfolioItem[];
+  positions?: AggregatedPosition[];
+  rawItemCount?: number;
   totalInvested: number;
   currentValue: number;
   totalProfitLoss: number;
   totalProfitLossPercent: number;
   allocation: { type: AssetType; value: number; percent: number }[];
 }
+
+export type DividendPaymentKind = 'dividendo' | 'jcp' | 'rendimento' | 'outro';
+
+export interface DividendHistoryPayment {
+  kind: DividendPaymentKind;
+  amountPerShare: number;
+  comDate?: string;
+  exDate?: string;
+  paymentDate?: string;
+  label?: string;
+  sources: string[];
+}
+
+export interface DividendHistoryAnalytics {
+  growth3yAvgPercent?: number;
+  growth5yAvgPercent?: number;
+  avg3yPerShare?: number;
+  avg5yPerShare?: number;
+  frequency: string;
+  paymentsLast12m: number;
+  paymentsPerYear: number;
+  typicalMonths: string[];
+  scheduleSummary: string;
+  growthScore: number;
+  consistencyScore: number;
+  dividendScore: number;
+  dividendScoreExplanation: string;
+  yearlyTotals: { year: number; total: number; count: number }[];
+}
+
+export interface DividendHistoryReport {
+  ticker: string;
+  companyName: string;
+  currentPrice: number;
+  payments: DividendHistoryPayment[];
+  analytics: DividendHistoryAnalytics;
+  yieldHistory: { year: number; yieldPercent: number }[];
+  dataSources: string[];
+}
+
+export type RIComparisonSentiment =
+  | 'muito_positivo'
+  | 'positivo'
+  | 'neutro'
+  | 'negativo'
+  | 'muito_negativo';
+
+export interface RIComparisonReport {
+  ticker: string;
+  companyName: string;
+  sentiment: RIComparisonSentiment;
+  sentimentLabel: string;
+  positives: string[];
+  negatives: string[];
+  summary: string;
+  plainLanguage: string;
+  dataSources: string[];
+}
+
+export type DropClassification =
+  | 'oportunidade_forte'
+  | 'possivel_oportunidade'
+  | 'neutro'
+  | 'atencao'
+  | 'alto_risco';
+
+export interface MarketDropOpportunity {
+  ticker: string;
+  name?: string;
+  changePercent: number;
+  period: 'day' | 'week' | 'month';
+  price: number;
+  classification: DropClassification;
+  classificationLabel: string;
+  reason: string;
+  analysis: string;
+}
+
+export interface MarketDropsScanResult {
+  day: MarketDropOpportunity[];
+  week: MarketDropOpportunity[];
+  month: MarketDropOpportunity[];
+  scannedAt: string;
+  dataSources: string[];
+}
+
+export interface CompanyAutoRating {
+  ticker: string;
+  companyName: string;
+  finalScore: number;
+  dimensions: {
+    dividends: number;
+    growth: number;
+    profit: number;
+    debt: number;
+    governance: number;
+    consistency: number;
+  };
+  explanation: string;
+  dataSources: string[];
+}
+
+export interface MonthlyIncomeSimulation {
+  capitalAvailable: number;
+  monthlyGoal: number;
+  monthsToGoal: number;
+  capitalNeeded: number;
+  estimatedYears: number;
+  suggestedPortfolio: {
+    ticker: string;
+    name?: string;
+    weightPercent: number;
+    dividendYield: number;
+    monthlyIncomeEstimate: number;
+  }[];
+  monthlyProjection: { month: string; income: number; patrimony: number }[];
+  risks: string[];
+  explanation: string;
+}
+
+export type CalendarEventFilter =
+  | 'all'
+  | 'dividend'
+  | 'com'
+  | 'payment'
+  | 'jcp'
+  | 'fii'
+  | 'etf'
+  | 'stock';

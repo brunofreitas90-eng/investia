@@ -1,26 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isDemoRequest } from '@/lib/demo-mode';
 import { createClient } from '@/lib/supabase/server';
-import { demoWatchlist } from '@/lib/demo-data';
-import { enrichWatchlist } from '@/lib/watchlist';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
+import {
+  enrichWatchlist,
+  enrichWatchlistWith12mYield,
+} from '@/lib/watchlist';
 import { getQuotes } from '@/services/market';
 import type { WatchlistItem } from '@/types';
 
 async function enrichItems(items: WatchlistItem[]) {
   const tickers = items.map((i) => i.ticker);
   const quotes = await getQuotes(tickers);
-  return enrichWatchlist(items, quotes);
+  const withQuotes = enrichWatchlist(items, quotes);
+  return enrichWatchlistWith12mYield(withQuotes);
 }
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    const items = await enrichItems(demoWatchlist);
-    return NextResponse.json({ items });
+export async function GET(request: NextRequest) {
+  if (isDemoRequest(request)) {
+    return NextResponse.json(
+      { error: 'Modo demo usa armazenamento local', code: 'DEMO_CLIENT' },
+      { status: 401 }
+    );
   }
+
+  const user = await getAuthUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Não autenticado', code: 'SESSION_INVALID' },
+      { status: 401 }
+    );
+  }
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('watchlist')
@@ -38,19 +50,21 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (Array.isArray(body.items)) {
     const items = await enrichItems(body.items as WatchlistItem[]);
     return NextResponse.json({ items });
   }
 
+  const user = await getAuthUser();
   if (!user) {
-    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Não autenticado', code: 'SESSION_INVALID' },
+      { status: 401 }
+    );
   }
+
+  const supabase = await createClient();
 
   const { ticker, asset_type, notes } = body;
   if (!ticker) {
@@ -79,14 +93,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getAuthUser();
   if (!user) {
-    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Não autenticado', code: 'SESSION_INVALID' },
+      { status: 401 }
+    );
   }
+
+  const supabase = await createClient();
 
   const id = request.nextUrl.searchParams.get('id');
   if (!id) {

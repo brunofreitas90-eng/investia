@@ -1,11 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { demoAlerts } from '@/lib/demo-data';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
-import { loadDemoAlerts, saveDemoAlerts } from '@/lib/demo-alerts-storage';
+import {
+  clientItemPrefix,
+  clientUserId,
+  loadClientAlerts,
+  loadClientPortfolio,
+  loadClientPreferences,
+  saveClientAlerts,
+} from '@/lib/client-local-storage';
+import { getClientDataMode, isLocalClientMode } from '@/lib/client-data-mode';
 import { buildCondition } from '@/lib/alert-config';
-import { loadDemoPreferences } from '@/lib/demo-preferences-storage';
 import { mergePreferences } from '@/lib/user-preferences';
 import type { Alert, AlertType } from '@/types';
 import type { AlertWithStatus } from '@/services/alerts/evaluate';
@@ -36,16 +41,15 @@ export function useAlerts() {
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      const demo = isDemoModeClient();
-      setIsDemo(demo);
+      setIsDemo(getClientDataMode() === 'demo');
 
-      if (demo) {
-        const stored = loadDemoAlerts();
-        const base = stored?.length ? stored : demoAlerts;
+      if (isLocalClientMode()) {
+        const base = loadClientAlerts();
+        const portfolioItems = loadClientPortfolio();
         const res = await fetch('/api/alerts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ alerts: base }),
+          body: JSON.stringify({ alerts: base, portfolioItems }),
         });
         if (res.ok) setData(await res.json());
         return;
@@ -64,19 +68,20 @@ export function useAlerts() {
     fetchAlerts();
   }, [fetchAlerts]);
 
-  const persistDemo = async (alerts: Alert[]) => {
-    saveDemoAlerts(alerts);
+  const persistLocal = async (alerts: Alert[]) => {
+    saveClientAlerts(alerts);
+    const portfolioItems = loadClientPortfolio();
     const res = await fetch('/api/alerts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ alerts }),
+      body: JSON.stringify({ alerts, portfolioItems }),
     });
     if (res.ok) setData(await res.json());
   };
 
   const resolveNotifyDefaults = async () => {
-    if (isDemoModeClient()) {
-      const p = loadDemoPreferences();
+    if (isLocalClientMode()) {
+      const p = loadClientPreferences();
       return { email: p.notifyEmail, app: p.notifyApp };
     }
     try {
@@ -105,11 +110,11 @@ export function useAlerts() {
         daysBefore: input.daysBefore,
       });
 
-      if (isDemoModeClient()) {
-        const stored = loadDemoAlerts() ?? demoAlerts;
+      if (isLocalClientMode()) {
+        const stored = loadClientAlerts();
         const newAlert: Alert = {
-          id: `demo-al-${Date.now()}`,
-          user_id: 'demo',
+          id: `${clientItemPrefix()}-al-${Date.now()}`,
+          user_id: clientUserId(),
           ticker,
           alert_type: input.alert_type,
           condition,
@@ -117,7 +122,7 @@ export function useAlerts() {
           notify_email: input.notify_email ?? notifyDefaults.email,
           notify_app: input.notify_app ?? notifyDefaults.app,
         };
-        await persistDemo([...stored, newAlert]);
+        await persistLocal([...stored, newAlert]);
         toast.success('Alerta criado');
         return;
       }
@@ -152,12 +157,10 @@ export function useAlerts() {
   const toggleAlert = async (id: string, isActive: boolean) => {
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoAlerts() ?? demoAlerts;
-        const next = stored.map((a) =>
-          a.id === id ? { ...a, is_active: isActive } : a
-        );
-        await persistDemo(next);
+      if (isLocalClientMode()) {
+        const stored = loadClientAlerts();
+        const next = stored.map((a) => (a.id === id ? { ...a, is_active: isActive } : a));
+        await persistLocal(next);
         return;
       }
 
@@ -178,9 +181,9 @@ export function useAlerts() {
   const removeAlert = async (id: string) => {
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoAlerts() ?? demoAlerts;
-        await persistDemo(stored.filter((a) => a.id !== id));
+      if (isLocalClientMode()) {
+        const stored = loadClientAlerts();
+        await persistLocal(stored.filter((a) => a.id !== id));
         toast.success('Alerta removido');
         return;
       }

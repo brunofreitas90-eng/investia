@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useSettings } from '@/hooks/use-settings';
+import { PushNotificationsPanel } from '@/components/push-notifications-panel';
 import { clearAllDemoLocalData } from '@/lib/demo-reset';
 import { formatDate, cn } from '@/lib/utils';
 import type { UserPreferences } from '@/types';
@@ -150,14 +151,9 @@ export function SettingsDashboard() {
             )}
           </form>
           {isDemo && (
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button asChild>
-                <Link href="/register">Criar conta</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/login">Entrar</Link>
-              </Button>
-            </div>
+            <p className="text-sm text-zinc-500 pt-2">
+              Dados salvos neste navegador. Use Sair no menu para trocar de sessão.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -179,10 +175,11 @@ export function SettingsDashboard() {
             />
             <ToggleRow
               label="Notificações no app"
-              description="Alertas dentro do InvestIA"
+              description="Preferência geral de alertas no DelfoInvestIA"
               checked={prefs.notifyApp}
               onChange={(v) => updatePref('notifyApp', v)}
             />
+            <PushNotificationsPanel />
             <ToggleRow
               label="Gráfico de patrimônio no dashboard"
               checked={prefs.showPatrimonyChart}

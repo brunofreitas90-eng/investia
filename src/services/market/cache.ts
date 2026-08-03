@@ -1,5 +1,16 @@
 const memoryCache = new Map<string, { data: unknown; expires: number }>();
 
+/** TTLs em segundos — reduz consumo de APIs externas */
+export const CACHE_TTL = {
+  quote: 120,
+  fundamentals: 600,
+  dividends: 3600,
+  history: 1800,
+  riReport: 900,
+  aiAnalysis: 1800,
+  marketScan: 600,
+} as const;
+
 export function getCache<T>(key: string): T | null {
   const entry = memoryCache.get(key);
   if (!entry) return null;

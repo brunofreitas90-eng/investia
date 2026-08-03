@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Trash2, Loader2, RefreshCw, PieChart } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { PortfolioPositionsTable } from '@/components/carteira/portfolio-positions-table';
 import { usePortfolio } from '@/hooks/use-portfolio';
-import { formatCurrency, formatPercent } from '@/lib/utils';
+import { aggregatePortfolioPositions } from '@/lib/portfolio-aggregate';
+import { pnlBg, pnlText } from '@/lib/pnl-style';
+import { formatCurrency, formatPercent, cn } from '@/lib/utils';
+
+type Tab = 'consolidado' | 'operacoes';
 
 export default function CarteiraPage() {
   const { items, summary, loading, saving, isDemo, refresh, addItem, removeItem } =
     usePortfolio();
+  const [tab, setTab] = useState<Tab>('consolidado');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     ticker: '',
@@ -22,6 +28,11 @@ export default function CarteiraPage() {
     average_price: '',
     purchase_date: new Date().toISOString().split('T')[0],
   });
+
+  const positions = useMemo(() => {
+    if (summary?.positions?.length) return summary.positions;
+    return aggregatePortfolioPositions(items);
+  }, [summary?.positions, items]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,36 +57,35 @@ export default function CarteiraPage() {
   const invested = summary?.totalInvested ?? 0;
   const pl = summary?.totalProfitLoss ?? 0;
   const plPct = summary?.totalProfitLossPercent ?? 0;
+  const opCount = summary?.rawItemCount ?? items.length;
 
   return (
     <PageWrapper
       title="Carteira"
       subtitle={
         isDemo
-          ? 'Modo demo — dados salvos no navegador'
-          : 'Gerencie seus investimentos com cotações ao vivo'
+          ? 'Modo demo — consolidação automática de todas as compras'
+          : 'Posição consolidada com preço médio ponderado e cotações ao vivo'
       }
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
+          <Card className="border-white/[0.06]">
             <CardContent className="p-4">
-              <p className="text-xs text-zinc-500">Patrimônio</p>
-              <p className="text-2xl font-bold">{formatCurrency(total)}</p>
+              <p className="text-xs text-zinc-500">Patrimônio hoje</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(total)}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-white/[0.06]">
             <CardContent className="p-4">
-              <p className="text-xs text-zinc-500">Investido</p>
-              <p className="text-2xl font-bold">{formatCurrency(invested)}</p>
+              <p className="text-xs text-zinc-500">Total investido</p>
+              <p className="text-2xl font-bold text-zinc-200">{formatCurrency(invested)}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className={cn('border', pnlBg(pl))}>
             <CardContent className="p-4">
-              <p className="text-xs text-zinc-500">Lucro / Prejuízo</p>
-              <p
-                className={`text-2xl font-bold ${pl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
-              >
+              <p className="text-xs text-zinc-500">Lucro ou prejuízo</p>
+              <p className={cn('text-2xl font-bold', pnlText(pl))}>
                 {formatCurrency(pl)}{' '}
                 <span className="text-sm font-normal">({formatPercent(plPct)})</span>
               </p>
@@ -84,22 +94,45 @@ export default function CarteiraPage() {
         </div>
 
         <div className="flex flex-wrap justify-between items-center gap-3">
-          {summary?.allocation && summary.allocation.length > 0 && (
-            <div className="flex flex-wrap gap-2 items-center text-sm text-zinc-500">
-              <PieChart className="h-4 w-4" />
-              {summary.allocation.map((a) => (
-                <Badge key={a.type} variant="secondary">
-                  {a.type}: {a.percent.toFixed(0)}%
-                </Badge>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-2">
+            {(
+              [
+                ['consolidado', `Consolidado (${positions.length})`],
+                ['operacoes', `Operações (${opCount})`],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+                  tab === id
+                    ? 'bg-emerald-500/15 text-emerald-400'
+                    : 'bg-white/5 text-zinc-400 hover:text-white'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center ml-auto">
+            {summary?.allocation && summary.allocation.length > 0 && (
+              <div className="flex flex-wrap gap-2 items-center text-sm text-zinc-500">
+                <PieChart className="h-4 w-4" />
+                {summary.allocation.map((a) => (
+                  <Badge key={a.type} variant="secondary">
+                    {a.type}: {a.percent.toFixed(0)}%
+                  </Badge>
+                ))}
+              </div>
+            )}
             <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-              <Plus className="h-4 w-4" /> Adicionar ativo
+              <Plus className="h-4 w-4" /> Nova compra
             </Button>
           </div>
         </div>
@@ -107,7 +140,11 @@ export default function CarteiraPage() {
         {showForm && (
           <Card>
             <CardHeader>
-              <CardTitle>Novo ativo</CardTitle>
+              <CardTitle>Registrar compra</CardTitle>
+              <p className="text-sm text-zinc-500">
+                Cada compra é registrada separadamente; o consolidado calcula o preço médio
+                automaticamente.
+              </p>
             </CardHeader>
             <CardContent>
               <form
@@ -134,7 +171,7 @@ export default function CarteiraPage() {
                   />
                 </div>
                 <div>
-                  <Label>Preço médio</Label>
+                  <Label>Preço pago (unit.)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -168,7 +205,7 @@ export default function CarteiraPage() {
                 </div>
                 <div className="flex items-end">
                   <Button type="submit" className="w-full" disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar compra'}
                   </Button>
                 </div>
               </form>
@@ -188,43 +225,48 @@ export default function CarteiraPage() {
         {!loading && items.length === 0 && (
           <Card>
             <CardContent className="p-10 text-center text-zinc-400">
-              Sua carteira está vazia. Adicione o primeiro ativo.
+              Sua carteira está vazia. Registre a primeira compra.
             </CardContent>
           </Card>
         )}
 
-        {!loading && (
+        {!loading && items.length > 0 && tab === 'consolidado' && (
+          <PortfolioPositionsTable positions={positions} />
+        )}
+
+        {!loading && tab === 'operacoes' && (
           <div className="grid gap-4">
-            {items.map((item) => (
-              <Card key={item.id}>
+            {items.map((item) => {
+              const plItem = item.profit_loss_percent ?? 0;
+              const current = item.current_price ?? item.average_price;
+              return (
+              <Card
+                key={item.id}
+                className={cn('border', pnlBg(plItem, 0))}
+              >
                 <CardContent className="flex items-center justify-between p-6 gap-4">
                   <div>
                     <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold">{item.ticker}</span>
+                      <span className="text-lg font-bold text-white">{item.ticker}</span>
                       <Badge variant="secondary">{item.asset_type}</Badge>
                       {item.dividend_yield != null && item.dividend_yield > 0 && (
-                        <Badge variant="success">
-                          DY {item.dividend_yield.toFixed(1)}%
-                        </Badge>
+                        <Badge variant="success">Dividendos {item.dividend_yield.toFixed(1)}%</Badge>
                       )}
                     </div>
                     <p className="text-sm text-zinc-500 mt-1">
-                      {item.quantity} un · PM {formatCurrency(item.average_price)} · Atual{' '}
-                      {formatCurrency(item.current_price ?? item.average_price)}
+                      {item.quantity} un · Pagou {formatCurrency(item.average_price)} em{' '}
+                      {item.purchase_date} · Hoje{' '}
+                      <span className={current >= item.average_price ? 'text-emerald-400' : 'text-red-400'}>
+                        {formatCurrency(current)}
+                      </span>
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-semibold">
+                    <p className="font-semibold text-white">
                       {formatCurrency(item.current_value ?? 0)}
                     </p>
-                    <p
-                      className={
-                        (item.profit_loss_percent ?? 0) >= 0
-                          ? 'text-emerald-400 text-sm'
-                          : 'text-red-400 text-sm'
-                      }
-                    >
-                      {formatPercent(item.profit_loss_percent ?? 0)}
+                    <p className={cn('text-sm font-medium', pnlText(plItem))}>
+                      {formatPercent(plItem)}
                     </p>
                   </div>
                   <Button
@@ -237,11 +279,11 @@ export default function CarteiraPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
     </PageWrapper>
   );
 }
-

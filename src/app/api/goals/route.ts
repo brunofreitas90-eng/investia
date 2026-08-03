@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unauthorized } from '@/lib/api-guard';
+import { isDemoRequest } from '@/lib/demo-mode';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { demoFinancialGoal } from '@/lib/demo-data';
 import { resolvePortfolioItems } from '@/lib/resolve-portfolio-items';
 import { enrichPortfolio } from '@/lib/portfolio';
@@ -14,19 +17,19 @@ async function patrimonyFromPortfolio() {
   return enriched.reduce((sum, i) => sum + (i.current_value ?? 0), 0);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    if (isDemoRequest(request)) {
+      return unauthorized();
+    }
+
+    const user = await getAuthUser();
+    if (!user) {
+      return unauthorized();
+    }
+
     const currentPatrimony = await patrimonyFromPortfolio();
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        buildGoalProgressReport(demoFinancialGoal, currentPatrimony)
-      );
-    }
 
     const { data: profile, error } = await supabase
       .from('profiles')
@@ -63,14 +66,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(buildGoalProgressReport(goal, currentPatrimony));
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = await getAuthUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return unauthorized();
     }
+
+    const supabase = await createClient();
 
     const goal: FinancialGoal = {
       targetAmount: body.targetAmount != null ? Number(body.targetAmount) : undefined,

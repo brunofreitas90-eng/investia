@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
-import { loadDemoPreferences } from '@/lib/demo-preferences-storage';
+import { loadClientPreferences } from '@/lib/client-local-storage';
+import { isLocalClientMode } from '@/lib/client-data-mode';
 import { mergePreferences } from '@/lib/user-preferences';
 import type { UserPreferences } from '@/types';
 
@@ -20,8 +20,8 @@ export function useUserPreferences() {
 
   const reload = useCallback(async () => {
     try {
-      if (isDemoModeClient()) {
-        setPreferences(loadDemoPreferences());
+      if (isLocalClientMode()) {
+        setPreferences(loadClientPreferences());
         return;
       }
 

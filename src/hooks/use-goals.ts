@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { demoFinancialGoal } from '@/lib/demo-data';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
-import { loadDemoGoal, saveDemoGoal } from '@/lib/demo-goal-storage';
+import { loadClientGoal, saveClientGoal } from '@/lib/client-local-storage';
+import { getClientDataMode, isLocalClientMode } from '@/lib/client-data-mode';
 import type { FinancialGoal } from '@/types';
 import type { GoalProgressReport } from '@/lib/goal-progress';
 import { toast } from 'sonner';
@@ -17,11 +16,14 @@ export function useGoals() {
   const fetchGoals = useCallback(async () => {
     setLoading(true);
     try {
-      const demo = isDemoModeClient();
-      setIsDemo(demo);
+      setIsDemo(getClientDataMode() === 'demo');
 
-      if (demo) {
-        const goal = loadDemoGoal() ?? demoFinancialGoal;
+      if (isLocalClientMode()) {
+        const goal = loadClientGoal();
+        if (!goal) {
+          setReport(null);
+          return;
+        }
         const res = await fetch('/api/goals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -60,10 +62,10 @@ export function useGoals() {
   const saveGoal = async (goal: FinancialGoal) => {
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        saveDemoGoal(goal);
+      if (isLocalClientMode()) {
+        saveClientGoal(goal);
         await previewGoal(goal);
-        toast.success('Meta salva (demo)');
+        toast.success('Meta salva');
         return;
       }
 

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { SmartInsightsPanel } from '@/components/alertas/smart-insights-panel';
 import { useAlerts } from '@/hooks/use-alerts';
 import { ALERT_TYPE_OPTIONS, getAlertTypeLabel } from '@/lib/alert-config';
 import { popularTickers } from '@/lib/demo-data';
@@ -93,6 +94,8 @@ export function AlertsDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <SmartInsightsPanel />
 
       <div className="flex flex-wrap justify-between gap-3">
         <Button onClick={() => setShowForm(!showForm)} className="gap-2">

@@ -1,17 +1,31 @@
-import type { Dividend, FinancialEvent } from '@/types';
+import type { Dividend, DividendPaymentKind, FinancialEvent } from '@/types';
+
+const KIND_LABELS: Record<DividendPaymentKind, string> = {
+  dividendo: 'Dividendo',
+  jcp: 'JSCP',
+  rendimento: 'Rendimento',
+  outro: 'Provento',
+};
+
+function kindLabel(kind?: DividendPaymentKind): string {
+  return kind ? KIND_LABELS[kind] : 'Provento';
+}
 
 export function dividendsToCalendarEvents(dividends: Dividend[]): FinancialEvent[] {
   const events: FinancialEvent[] = [];
 
   for (const d of dividends) {
+    const kind = kindLabel(d.kind);
+    const projectedHint = d.projected ? ' (previsto)' : '';
+
     if (d.com_date) {
       events.push({
         id: `${d.id}-com`,
         ticker: d.ticker,
         event_type: 'dividend_com',
-        title: `Data COM — ${d.ticker}`,
+        title: `Data COM — ${kind} · ${d.ticker}`,
         event_date: d.com_date,
-        description: `Último dia para comprar com direito a proventos · ${formatAmount(d.amount)}`,
+        description: `Último dia para comprar com direito a ${kind.toLowerCase()}${projectedHint} · ${formatAmount(d.amount)}`,
       });
     }
 
@@ -20,19 +34,25 @@ export function dividendsToCalendarEvents(dividends: Dividend[]): FinancialEvent
         id: `${d.id}-ex`,
         ticker: d.ticker,
         event_type: 'dividend',
-        title: `Data EX — ${d.ticker}`,
+        title: `Data EX — ${kind} · ${d.ticker}`,
         event_date: d.ex_date,
-        description: `Ex-dividendo · ${formatAmount(d.amount)}`,
+        description: `Ex-${kind.toLowerCase()}${projectedHint} · ${formatAmount(d.amount)}`,
       });
     }
 
     if (d.payment_date) {
       const statusLabel =
-        d.status === 'paid' ? 'Pagamento' : d.status === 'confirmed' ? 'Pgto confirmado' : 'Pgto previsto';
+        d.status === 'paid'
+          ? `Pagamento ${kind}`
+          : d.status === 'confirmed'
+            ? `${kind} confirmado`
+            : d.projected
+              ? `${kind} previsto`
+              : `Pgto previsto · ${kind}`;
       events.push({
         id: `${d.id}-pay`,
         ticker: d.ticker,
-        event_type: 'payment',
+        event_type: d.kind === 'jcp' ? 'jcp' : 'payment',
         title: `${statusLabel} — ${d.ticker}`,
         event_date: d.payment_date,
         description: formatAmount(d.amount),

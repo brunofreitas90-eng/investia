@@ -1,27 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isDemoRequest } from '@/lib/demo-mode';
 import { createClient } from '@/lib/supabase/server';
-import { demoPortfolio } from '@/lib/demo-data';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { getQuotes } from '@/services/market';
-import { enrichPortfolio, summarizePortfolio } from '@/lib/portfolio';
+import {
+  enrichPortfolio,
+  enrichPositionsWith5yDividends,
+  summarizePortfolio,
+} from '@/lib/portfolio';
+import { aggregatePortfolioPositions } from '@/lib/portfolio-aggregate';
 import type { PortfolioItem } from '@/types';
 
 async function enrichAndSummarize(items: PortfolioItem[]) {
   const tickers = items.map((p) => p.ticker);
   const quotes = await getQuotes(tickers);
   const enriched = enrichPortfolio(items, quotes);
-  return summarizePortfolio(enriched);
+  const summary = summarizePortfolio(enriched);
+  const positions = await enrichPositionsWith5yDividends(
+    aggregatePortfolioPositions(enriched)
+  );
+  return { ...summary, positions, rawItemCount: items.length };
 }
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    const enriched = await enrichAndSummarize(demoPortfolio);
-    return NextResponse.json(enriched);
+export async function GET(request: NextRequest) {
+  if (isDemoRequest(request)) {
+    return NextResponse.json(
+      { error: 'Modo demo usa armazenamento local', code: 'DEMO_CLIENT' },
+      { status: 401 }
+    );
   }
+
+  const user = await getAuthUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Não autenticado', code: 'SESSION_INVALID' },
+      { status: 401 }
+    );
+  }
+
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('portfolio')
@@ -39,10 +56,6 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // Preview/enrich only (modo demo — sem persistir no banco)
   if (Array.isArray(body.items)) {
@@ -50,9 +63,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(enriched);
   }
 
+  const user = await getAuthUser();
   if (!user) {
-    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Não autenticado', code: 'SESSION_INVALID' },
+      { status: 401 }
+    );
   }
+
+  const supabase = await createClient();
 
   const { ticker, asset_type, quantity, average_price, purchase_date, notes } =
     body;
@@ -89,14 +108,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getAuthUser();
   if (!user) {
-    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Não autenticado', code: 'SESSION_INVALID' },
+      { status: 401 }
+    );
   }
+
+  const supabase = await createClient();
 
   const id = request.nextUrl.searchParams.get('id');
   if (!id) {

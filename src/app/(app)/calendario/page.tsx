@@ -7,7 +7,7 @@ export default function CalendarioPage() {
   return (
     <PageWrapper
       title="Calendário Financeiro"
-      subtitle="Datas COM, ex-dividendo e pagamentos da sua carteira"
+      subtitle="Datas COM, EX, pagamentos e filtros por tipo de ativo"
     >
       <CalendarDashboard />
     </PageWrapper>

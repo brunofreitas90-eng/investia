@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { demoWatchlist } from '@/lib/demo-data';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
 import {
-  loadDemoWatchlist,
-  saveDemoWatchlist,
-} from '@/lib/demo-watchlist-storage';
+  clientItemPrefix,
+  clientUserId,
+  loadClientWatchlist,
+  saveClientWatchlist,
+} from '@/lib/client-local-storage';
+import { getClientDataMode, isLocalClientMode } from '@/lib/client-data-mode';
 import type { AssetType, WatchlistItem } from '@/types';
 import { toast } from 'sonner';
 
@@ -25,12 +26,10 @@ export function useWatchlist() {
   const fetchWatchlist = useCallback(async () => {
     setLoading(true);
     try {
-      const demo = isDemoModeClient();
-      setIsDemo(demo);
+      setIsDemo(getClientDataMode() === 'demo');
 
-      if (demo) {
-        const stored = loadDemoWatchlist();
-        const base = stored?.length ? stored : demoWatchlist;
+      if (isLocalClientMode()) {
+        const base = loadClientWatchlist();
         const res = await fetch('/api/watchlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -68,17 +67,17 @@ export function useWatchlist() {
 
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoWatchlist() ?? demoWatchlist;
+      if (isLocalClientMode()) {
+        const stored = loadClientWatchlist();
         const newItem: WatchlistItem = {
-          id: `demo-w-${Date.now()}`,
-          user_id: 'demo',
+          id: `${clientItemPrefix()}-w-${Date.now()}`,
+          user_id: clientUserId(),
           ticker,
           asset_type: input.asset_type,
           notes: input.notes,
         };
         const next = [...stored, newItem];
-        saveDemoWatchlist(next);
+        saveClientWatchlist(next);
 
         const res = await fetch('/api/watchlist', {
           method: 'POST',
@@ -115,10 +114,10 @@ export function useWatchlist() {
   const removeItem = async (id: string) => {
     setSaving(true);
     try {
-      if (isDemoModeClient()) {
-        const stored = loadDemoWatchlist() ?? demoWatchlist;
+      if (isLocalClientMode()) {
+        const stored = loadClientWatchlist();
         const next = stored.filter((i) => i.id !== id);
-        saveDemoWatchlist(next);
+        saveClientWatchlist(next);
 
         const res = await fetch('/api/watchlist', {
           method: 'POST',

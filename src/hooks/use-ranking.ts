@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { demoPortfolio, demoWatchlist } from '@/lib/demo-data';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
-import { loadDemoPortfolio } from '@/lib/demo-portfolio-storage';
-import { loadDemoWatchlist } from '@/lib/demo-watchlist-storage';
+import {
+  loadClientPortfolio,
+  loadClientWatchlist,
+} from '@/lib/client-local-storage';
+import { getClientDataMode, isLocalClientMode } from '@/lib/client-data-mode';
 import type {
   RankingMetric,
   RankingReport,
@@ -23,12 +24,11 @@ export function useRanking(
   const fetchRanking = useCallback(async () => {
     setLoading(true);
     try {
-      const demo = isDemoModeClient();
-      setIsDemo(demo);
+      setIsDemo(getClientDataMode() === 'demo');
 
-      if (demo) {
-        const portfolio = loadDemoPortfolio() ?? demoPortfolio;
-        const watchlist = loadDemoWatchlist() ?? demoWatchlist;
+      if (isLocalClientMode()) {
+        const portfolio = loadClientPortfolio();
+        const watchlist = loadClientWatchlist();
         const res = await fetch('/api/ranking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

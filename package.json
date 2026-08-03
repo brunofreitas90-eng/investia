@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-production.ps1"
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-production.ps1",
+    "supabase:setup": "powershell -ExecutionPolicy Bypass -File ./scripts/create-supabase-project.ps1"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -27,6 +28,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "@vercel/blob": "^2.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -42,6 +44,7 @@
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.4.3",
     "zustand": "^5.0.13"
@@ -51,6 +54,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",

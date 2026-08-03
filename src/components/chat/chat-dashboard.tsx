@@ -5,8 +5,8 @@ import { Send, Bot, User, Loader2, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { demoPortfolio } from '@/lib/demo-data';
-import { isDemoModeClient, loadDemoPortfolio } from '@/lib/demo-portfolio-storage';
+import { loadClientPortfolio } from '@/lib/client-local-storage';
+import { isLocalClientMode } from '@/lib/client-data-mode';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -17,17 +17,26 @@ interface Message {
 }
 
 const suggestions = [
+  'O que é dividend yield e como calcular?',
+  'Diferença entre ação ON e PN?',
+  'Como funciona a data COM?',
+  'Vale a pena investir em Petrobras?',
   'Como está minha carteira?',
   'Quanto recebi de dividendos?',
-  'Qual ativo rende mais na carteira?',
-  'Tenho eventos importantes em breve?',
-  'Quanto preciso declarar no IR?',
 ];
 
-function getPortfolioItemsForChat() {
-  if (isDemoModeClient()) {
-    const stored = loadDemoPortfolio();
-    return stored?.length ? stored : demoPortfolio;
+async function getPortfolioItemsForChat() {
+  if (isLocalClientMode()) {
+    return loadClientPortfolio();
+  }
+  try {
+    const res = await fetch('/api/portfolio');
+    if (res.ok) {
+      const data = await res.json();
+      return data.items?.length ? data.items : undefined;
+    }
+  } catch {
+    /* sem carteira */
   }
   return undefined;
 }
@@ -37,12 +46,14 @@ export function ChatDashboard() {
     {
       role: 'assistant',
       content:
-        'Olá! Sou seu assistente InvestIA. Pergunte sobre sua carteira, dividendos, rendimentos ou imposto — uso os dados reais dos seus ativos.',
+        'Olá! Sou o assistente DelfoInvestIA. Pergunte sobre o mercado de ações em geral (conceitos, empresas, setores, FIIs, exterior) ou sobre a sua carteira e dividendos — uso dados reais quando disponíveis.',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [contextHint, setContextHint] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<'ai' | 'rules' | null>(null);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,7 +71,7 @@ export function ChatDashboard() {
     setLoading(true);
 
     try {
-      const portfolioItems = getPortfolioItemsForChat();
+      const portfolioItems = await getPortfolioItemsForChat();
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -87,6 +98,8 @@ export function ChatDashboard() {
       }
 
       setMessages((m) => [...m, { role: 'assistant', content: data.response }]);
+      if (data.mode) setChatMode(data.mode);
+      if (typeof data.aiAvailable === 'boolean') setAiAvailable(data.aiAvailable);
 
       if (data.contextSummary?.qtdAtivos > 0) {
         setContextHint(
@@ -108,15 +121,27 @@ export function ChatDashboard() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] max-w-4xl mx-auto">
-      {contextHint && (
-        <div className="mb-3 flex items-center gap-2 text-xs text-zinc-500">
-          <Wallet className="h-3.5 w-3.5 text-emerald-400" />
-          {contextHint}
-          <Badge variant="secondary" className="text-[10px]">
-            dados ao vivo
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        {contextHint && (
+          <>
+            <Wallet className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{contextHint}</span>
+            <Badge variant="secondary" className="text-[10px]">
+              dados ao vivo
+            </Badge>
+          </>
+        )}
+        {aiAvailable === false && (
+          <Badge variant="warning" className="text-[10px]">
+            IA completa indisponível — respostas por regras + sua carteira
           </Badge>
-        </div>
-      )}
+        )}
+        {chatMode === 'ai' && (
+          <Badge variant="success" className="text-[10px]">
+            consultor IA
+          </Badge>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
         {messages.map((msg, i) => (
@@ -152,7 +177,7 @@ export function ChatDashboard() {
         {loading && (
           <div className="flex gap-3 items-center text-sm text-zinc-500">
             <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-            Analisando sua carteira...
+            Analisando...
           </div>
         )}
         <div ref={bottomRef} />
@@ -177,7 +202,7 @@ export function ChatDashboard() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send(input)}
-          placeholder="Pergunte sobre sua carteira, dividendos, IR..."
+          placeholder="Pergunte sobre ações, mercado, carteira, dividendos..."
           disabled={loading}
         />
         <Button onClick={() => send(input)} disabled={loading || !input.trim()}>

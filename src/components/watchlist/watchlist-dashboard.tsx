@@ -19,9 +19,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useWatchlist } from '@/hooks/use-watchlist';
 import { popularTickers } from '@/lib/demo-data';
-import { formatCurrency, formatPercent, isBrazilianTicker } from '@/lib/utils';
+import { dyClass } from '@/lib/pnl-style';
+import { formatCurrency, formatPercent, isBrazilianTicker, cn } from '@/lib/utils';
 import type { AssetType } from '@/types';
-import { cn } from '@/lib/utils';
 
 function inferAssetType(ticker: string): AssetType {
   const t = ticker.toUpperCase();
@@ -238,6 +238,25 @@ export function WatchlistDashboard() {
                     ) : (
                       <p className="text-sm text-zinc-500">Cotação indisponível</p>
                     )}
+                  </div>
+
+                  <div className="text-right min-w-[5.5rem]">
+                    <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                      Dividendos
+                    </p>
+                    {item.dividend_yield_12m != null && item.dividend_yield_12m > 0 ? (
+                      <p
+                        className={cn(
+                          'text-base font-semibold tabular-nums',
+                          dyClass(item.dividend_yield_12m)
+                        )}
+                      >
+                        {item.dividend_yield_12m.toFixed(1)}%
+                      </p>
+                    ) : (
+                      <p className="text-sm text-zinc-600">—</p>
+                    )}
+                    <p className="text-[10px] text-zinc-600">s/ preço atual</p>
                   </div>
 
                   <div className="flex items-center gap-2">

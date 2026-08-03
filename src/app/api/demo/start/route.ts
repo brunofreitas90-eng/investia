@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clearAppAccessCookie } from '@/lib/app-access';
+import { clearPersonalModeCookie } from '@/lib/personal-mode';
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -11,5 +13,7 @@ export async function GET(request: NextRequest) {
     maxAge: 60 * 60 * 24 * 30,
     sameSite: 'lax',
   });
+  clearAppAccessCookie(response);
+  clearPersonalModeCookie(response);
   return response;
 }

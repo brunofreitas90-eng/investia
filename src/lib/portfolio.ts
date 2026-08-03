@@ -1,5 +1,11 @@
 import type { PortfolioItem, PortfolioSummary, DashboardStats } from '@/types';
 import type { Quote } from '@/types';
+import {
+  currentYield12m,
+  sumDividendsLast12Months,
+} from '@/lib/dividend-price-target';
+import type { AggregatedPosition } from '@/lib/portfolio-aggregate';
+import { buildDividendHistoryReport } from '@/services/market/dividend-history';
 import { calculateProfitLoss } from './utils';
 
 export function enrichPortfolio(
@@ -21,6 +27,45 @@ export function enrichPortfolio(
       profit_loss: value,
       profit_loss_percent: percent,
       dividend_yield: quote?.dividendYield ?? item.dividend_yield,
+    };
+  });
+}
+
+/** Enriquece posições com % de dividendos (12m) sobre o preço médio de compra. */
+export async function enrichPositionsWith5yDividends(
+  positions: AggregatedPosition[]
+): Promise<AggregatedPosition[]> {
+  if (positions.length === 0) return positions;
+
+  const uniqueTickers = [...new Set(positions.map((p) => p.ticker.toUpperCase()))];
+  const reports = await Promise.all(
+    uniqueTickers.map(async (ticker) => {
+      try {
+        const report = await buildDividendHistoryReport(ticker);
+        return [ticker, report] as const;
+      } catch {
+        return [ticker, null] as const;
+      }
+    })
+  );
+  const byTicker = new Map(reports);
+
+  return positions.map((pos) => {
+    const report = byTicker.get(pos.ticker.toUpperCase());
+    if (!report?.payments?.length || pos.averagePrice <= 0) return pos;
+
+    const paid12m = sumDividendsLast12Months(report.payments);
+    const yieldOnCost = currentYield12m(paid12m, pos.averagePrice);
+    if (yieldOnCost == null || yieldOnCost <= 0) return pos;
+
+    const rounded = Math.round(yieldOnCost * 10) / 10;
+
+    return {
+      ...pos,
+      dividends5yAvgPerShare: paid12m,
+      dividends5yAnnualAmount: paid12m * pos.totalQuantity,
+      dividendYieldOnCost: rounded,
+      dividendYield: rounded,
     };
   });
 }

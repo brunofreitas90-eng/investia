@@ -16,20 +16,33 @@ import { Badge } from '@/components/ui/badge';
 import { useCalendar } from '@/hooks/use-calendar';
 import { groupEventsByDate } from '@/lib/calendar-events';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
-import type { FinancialEvent } from '@/types';
+import type { CalendarEventFilter, FinancialEvent } from '@/types';
 
 const EVENT_STYLES: Record<string, { color: string; label: string }> = {
   dividend_com: { color: 'bg-violet-500/15 text-violet-300 border-violet-500/30', label: 'COM' },
   dividend: { color: 'bg-blue-500/15 text-blue-300 border-blue-500/30', label: 'EX' },
   payment: { color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', label: 'Pagamento' },
+  jcp: { color: 'bg-teal-500/15 text-teal-300 border-teal-500/30', label: 'JSCP' },
   earnings: { color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', label: 'Resultado' },
 };
 
-type FilterType = 'all' | 'upcoming' | 'past';
+type TimeFilter = 'all' | 'upcoming' | 'past';
+
+const EVENT_FILTERS: { value: CalendarEventFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'dividend', label: 'Dividendos' },
+  { value: 'jcp', label: 'JSCP' },
+  { value: 'com', label: 'Data COM' },
+  { value: 'payment', label: 'Pagamentos' },
+  { value: 'fii', label: 'FIIs' },
+  { value: 'etf', label: 'ETFs' },
+  { value: 'stock', label: 'Ações' },
+];
 
 export function CalendarDashboard() {
-  const { data, loading, refresh } = useCalendar();
-  const [filter, setFilter] = useState<FilterType>('upcoming');
+  const [eventFilter, setEventFilter] = useState<CalendarEventFilter>('all');
+  const { data, loading, refresh } = useCalendar(eventFilter);
+  const [filter, setFilter] = useState<TimeFilter>('upcoming');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -70,6 +83,24 @@ export function CalendarDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-2">
+        {EVENT_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => setEventFilter(f.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-lg text-xs font-medium',
+              eventFilter === f.value
+                ? 'bg-emerald-500/15 text-emerald-400'
+                : 'bg-white/5 text-zinc-400 hover:text-white'
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -154,7 +185,7 @@ export function CalendarDashboard() {
 
       {!loading && (data?.allEvents.length ?? 0) > 0 && (
         <p className="text-xs text-zinc-600 text-center">
-          Eventos gerados a partir dos proventos da sua carteira (COM, EX e pagamento).
+          Inclui dividendos e JSCP anunciados, além de previsões pelo histórico da ação.
           <Link href="/dividendos" className="text-emerald-400 hover:underline ml-1">
             Ver dividendos
           </Link>

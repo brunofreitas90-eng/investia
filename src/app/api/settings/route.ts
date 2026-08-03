@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unauthorized } from '@/lib/api-guard';
+import { isDemoRequest } from '@/lib/demo-mode';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/supabase/get-auth-user';
 import { mergePreferences } from '@/lib/user-preferences';
 import type { SettingsPayload, UserPreferences } from '@/types';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      const payload: SettingsPayload = {
-        isDemo: true,
-        email: 'demo@investia.app',
-        fullName: 'Visitante Demo',
-        avatarUrl: null,
-        preferences: mergePreferences(),
-      };
-      return NextResponse.json(payload);
+    if (isDemoRequest(request)) {
+      return unauthorized();
     }
+
+    const user = await getAuthUser();
+    if (!user) {
+      return unauthorized();
+    }
+
+    const supabase = await createClient();
 
     const { data: profile, error } = await supabase
       .from('profiles')
@@ -51,24 +49,23 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      if (body.preview === true) {
+    if (body.preview === true) {
         const payload: SettingsPayload = {
           isDemo: true,
-          email: 'demo@investia.app',
+          email: 'demo@delfoinvestia.app',
           fullName: body.fullName ?? 'Visitante Demo',
           avatarUrl: null,
           preferences: mergePreferences(body.preferences),
         };
         return NextResponse.json(payload);
-      }
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
+
+    const user = await getAuthUser();
+    if (!user) {
+      return unauthorized();
+    }
+
+    const supabase = await createClient();
 
     const updates: Record<string, unknown> = {};
     if (body.fullName !== undefined) {

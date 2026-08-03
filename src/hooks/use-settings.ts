@@ -1,11 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { isDemoModeClient } from '@/lib/demo-portfolio-storage';
-import {
-  loadDemoPreferences,
-  saveDemoPreferences,
-} from '@/lib/demo-preferences-storage';
+import { loadClientPreferences, saveClientPreferences } from '@/lib/client-local-storage';
+import { getClientDataMode, isLocalClientMode } from '@/lib/client-data-mode';
 import { mergePreferences } from '@/lib/user-preferences';
 import { notifyPreferencesUpdated } from '@/hooks/use-user-preferences';
 import type { SettingsPayload, UserPreferences } from '@/types';
@@ -20,23 +17,24 @@ export function useSettings() {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const demo = isDemoModeClient();
-      setIsDemo(demo);
+      const mode = getClientDataMode();
+      setIsDemo(mode === 'demo');
 
-      if (demo) {
-        const prefs = loadDemoPreferences();
+      if (isLocalClientMode()) {
+        const prefs = loadClientPreferences();
+        const fullName = mode === 'demo' ? 'Visitante Demo' : 'Carteira pessoal';
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             preview: true,
-            fullName: 'Visitante Demo',
+            fullName,
             preferences: prefs,
           }),
         });
         if (res.ok) {
           const data = await res.json();
-          setSettings({ ...data, preferences: prefs });
+          setSettings({ ...data, preferences: prefs, fullName });
         }
         return;
       }
@@ -65,8 +63,8 @@ export function useSettings() {
         ...input.preferences,
       });
 
-      if (isDemoModeClient()) {
-        saveDemoPreferences(prefs);
+      if (isLocalClientMode()) {
+        saveClientPreferences(prefs);
         setSettings((prev) =>
           prev
             ? {
@@ -76,7 +74,7 @@ export function useSettings() {
               }
             : prev
         );
-        toast.success('Preferências salvas (demo)');
+        toast.success('Preferências salvas');
         notifyPreferencesUpdated();
         return;
       }
@@ -95,10 +93,10 @@ export function useSettings() {
         return;
       }
       setSettings(data);
-      toast.success('Configurações atualizadas');
+      toast.success('Configurações salvas');
       notifyPreferencesUpdated();
     } catch {
-      toast.error('Falha ao salvar');
+      toast.error('Falha ao salvar configurações');
     } finally {
       setSaving(false);
     }

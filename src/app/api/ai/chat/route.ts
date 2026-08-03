@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chatWithAI, type ChatHistoryMessage } from '@/services/ai/openai';
-import { buildChatContext } from '@/services/ai/chat-context';
+import { requireAuthOrDemo } from '@/lib/api-guard';
+import { chatWithAI, isOpenAIAvailable, type ChatHistoryMessage } from '@/services/ai/openai';
+import {
+  buildEnhancedChatContext,
+  formatEnhancedContextForPrompt,
+} from '@/services/ai/enhanced-chat-context';
 import { resolvePortfolioItems } from '@/lib/resolve-portfolio-items';
 import type { PortfolioItem } from '@/types';
 
 export async function POST(request: NextRequest) {
+  const access = await requireAuthOrDemo(request);
+  if (!access.ok) return access.response;
+
   try {
     const body = await request.json();
     const message = body.message as string;
@@ -21,11 +28,18 @@ export async function POST(request: NextRequest) {
       items = await resolvePortfolioItems();
     }
 
-    const context = await buildChatContext(items);
-    const response = await chatWithAI(message.trim(), context, history);
+    const context = await buildEnhancedChatContext(items, message.trim());
+    const { text, mode } = await chatWithAI(
+      message.trim(),
+      context,
+      history,
+      (ctx) => formatEnhancedContextForPrompt(ctx as typeof context)
+    );
 
     return NextResponse.json({
-      response,
+      response: text,
+      mode,
+      aiAvailable: isOpenAIAvailable(),
       contextSummary: {
         patrimonio: context.patrimonio,
         qtdAtivos: context.qtdAtivos,

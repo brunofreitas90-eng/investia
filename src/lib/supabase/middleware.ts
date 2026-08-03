@@ -1,55 +1,108 @@
-import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+import { hasPrivateAppAccess } from '@/lib/app-access';
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-          });
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
+
+
+/** Rotas que exigem senha do app (cookie app_access ou demo_mode). */
+
+const PROTECTED_PREFIXES = [
+
+  '/dashboard',
+
+  '/carteira',
+
+  '/watchlist',
+
+  '/dividendos',
+
+  '/imposto',
+
+  '/metas',
+
+  '/alertas',
+
+  '/calendario',
+
+  '/ranking',
+
+  '/setores',
+
+  '/radar',
+
+  '/analise',
+
+  '/assessoria',
+
+  '/chat',
+
+  '/configuracoes',
+
+  '/juros-compostos',
+
+  '/simuladores',
+
+  '/renda-mensal',
+
+] as const;
+
+
+
+function isProtectedPath(pathname: string): boolean {
+
+  return PROTECTED_PREFIXES.some(
+
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+
   );
 
-  // Atualiza sessão (importante para refresh token)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+}
+
+
+
+export function updateSession(request: NextRequest): NextResponse {
 
   const pathname = request.nextUrl.pathname;
+
+  const hasAccess = hasPrivateAppAccess(request);
+
+
+
   const isAuthPage =
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
+
+    pathname === '/login' ||
+
+    pathname === '/register' ||
+
     pathname.startsWith('/auth');
 
-  const isPublicPage = pathname === '/' || pathname.startsWith('/api/');
-  const isDemoMode = request.cookies.get('demo_mode')?.value === '1';
 
-  if (!user && !isAuthPage && !isPublicPage && !isDemoMode) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    return NextResponse.redirect(url);
+
+  if (hasAccess && (pathname === '/login' || pathname === '/register')) {
+
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+
   }
 
-  if (user && (pathname === '/login' || pathname === '/register')) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+
+
+  if (!hasAccess && isProtectedPath(pathname)) {
+
+    return NextResponse.redirect(new URL('/login', request.url));
+
   }
 
-  return supabaseResponse;
+
+
+  if (isAuthPage || pathname === '/' || isProtectedPath(pathname) || hasAccess) {
+
+    return NextResponse.next();
+
+  }
+
+
+
+  return NextResponse.next();
+
 }
+

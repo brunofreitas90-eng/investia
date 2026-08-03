@@ -3,12 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, Loader2, FileText } from 'lucide-react';
+import { AiStatusBanner } from '@/components/ai-status-banner';
 import { PageWrapper } from '@/components/layout/page-wrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RIAnalysisView } from '@/components/analise/ri-analysis-view';
 import { BuyScoreCard } from '@/components/analise/buy-score-card';
+import { RIComparisonCard } from '@/components/analise/ri-comparison-card';
+import { CompanyScoreCard } from '@/components/analise/company-score-card';
 import { popularTickers } from '@/lib/demo-data';
 import type { CompanyAnalysis } from '@/types';
 import { toast } from 'sonner';
@@ -63,6 +66,7 @@ export function AnaliseContent() {
       subtitle="Leitura de dados do RI, crescimento, retorno anual e projeção"
     >
       <div className="space-y-6 max-w-5xl">
+        <AiStatusBanner />
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-zinc-400 mb-4 flex items-center gap-2">
@@ -120,6 +124,8 @@ export function AnaliseContent() {
         {analysis && !loading && (
           <>
             <BuyScoreCard analysis={analysis} />
+            <CompanyScoreCard ticker={analysis.ticker} />
+            <RIComparisonCard ticker={analysis.ticker} />
 
             <Card>
               <CardHeader>
