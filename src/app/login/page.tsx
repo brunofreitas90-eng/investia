@@ -63,7 +63,12 @@ export default function LoginPage() {
       toast.success('Login na nuvem realizado!');
       window.location.href = '/dashboard';
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao conectar.');
+      const raw = err instanceof Error ? err.message : 'Erro ao conectar.';
+      const message =
+        /failed to fetch|networkerror|load failed/i.test(raw)
+          ? 'Não foi possível conectar ao Supabase. O projeto pode estar pausado — reative em supabase.com/dashboard.'
+          : raw;
+      toast.error(message);
     } finally {
       setLoading(false);
     }

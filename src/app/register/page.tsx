@@ -83,7 +83,12 @@ export default function RegisterPage() {
       toast.success('Conta criada! Faça login com seu email e senha.');
       window.location.href = upgrade ? '/login?upgrade=1' : '/login';
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar conta.');
+      const raw = err instanceof Error ? err.message : 'Erro ao criar conta.';
+      const message =
+        /failed to fetch|networkerror|load failed/i.test(raw)
+          ? 'Não foi possível conectar ao Supabase. O projeto pode estar pausado — reative em supabase.com/dashboard e tente de novo.'
+          : raw;
+      toast.error(message);
     } finally {
       setLoading(false);
     }
