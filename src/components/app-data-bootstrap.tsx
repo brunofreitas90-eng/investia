@@ -28,7 +28,11 @@ export function AppDataBootstrap({ children }: { children: React.ReactNode }) {
         });
         const status = (await res.json()) as { mode: string };
 
-        if (status.mode === 'personal' || status.mode === 'demo') {
+        if (
+          status.mode === 'personal' ||
+          status.mode === 'demo' ||
+          status.mode === 'cloud'
+        ) {
           if (!cancelled) setReady(true);
           return;
         }
